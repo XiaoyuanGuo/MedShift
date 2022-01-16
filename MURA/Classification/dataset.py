@@ -24,7 +24,7 @@ data_transforms = {
     ]),
 }
 
-class Emory_Allclass_Dataset(Dataset):
+class MURA_Allclass_Dataset(Dataset):
     def __init__(self, data, mode='train'):
         self.data = data
         self.mode = mode   
