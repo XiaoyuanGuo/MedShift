@@ -15,7 +15,7 @@ import torch
 import torch.nn as nn
 import torchvision.models as models
 
-from dataset import Part_Emory_Allclass_Dataset
+from dataset import MURA_Allclass_Dataset
 from torch.utils.data import DataLoader
 
 def set_parameter_requires_grad(model, feature_extracting):
@@ -34,7 +34,6 @@ def initialize_model(num_classes, feature_extract, use_pretrained=True):
 
 def train_model(model, dataloaders, criterion, optimizer, num_epochs=25):
     since = time.time()
-
     val_acc_history = []
 
     best_model_wts = copy.deepcopy(model.state_dict())
@@ -62,14 +61,7 @@ def train_model(model, dataloaders, criterion, optimizer, num_epochs=25):
                 # zero the parameter gradients
                 optimizer.zero_grad()
 
-                # forward
-                # track history if only in train
                 with torch.set_grad_enabled(phase == 'train'):
-                    # Get model outputs and calculate loss
-                    # Special case for inception because in training it has an auxiliary output. In train
-                    #   mode we calculate the loss by summing the final output and the auxiliary output
-                    #   but in testing we only consider the final output.
-
                     outputs = model(inputs)
                     loss = criterion(outputs, labels)
 
@@ -106,8 +98,8 @@ def train_model(model, dataloaders, criterion, optimizer, num_epochs=25):
     model.load_state_dict(best_model_wts)
     return model, val_acc_history
 
-def eval_model(model, dataloader, criterion):
 
+def eval_model(model, dataloader, criterion):
     model.eval()   # Set model to evaluate mode
 
     running_loss = 0.0
@@ -145,9 +137,9 @@ def eval(criterion):
         print(datasets[idx], len(stanford_paths))
         test_data = [[stanford_paths[i], idx] for i in range(0, len(stanford_paths))]
         test_data_lists += test_data
-    test_mura_dataset = Part_Emory_Allclass_Dataset(test_data_lists, "test")
+    test_mura_dataset = MURA_Allclass_Dataset(test_data_lists, "test")
     test_mura_dataloader = DataLoader(test_mura_dataset, batch_size = batch_size, shuffle=False, num_workers = 1)
-    y_true, y_pred, y_prob = eval_model_train(model, test_mura_dataloader, criterion)
+    y_true, y_pred, y_prob = eval_model(model, test_mura_dataloader, criterion)
 
     predictions = np.argmax(y_prob, axis=1)
     print(metrics.classification_report(y_true, predictions, digits=3))
@@ -178,9 +170,9 @@ def main():
         val_data = [[df.iloc[i][1], idx] for i in range(int(0.8*len(df)), len(df))]
         val_data_lists += val_data
 
-    train_mura_dataset = Part_Emory_Allclass_Dataset(train_data_lists, "train")
+    train_mura_dataset = MURA_Allclass_Dataset(train_data_lists, "train")
     train_mura_dataloader = DataLoader(train_mura_dataset, batch_size = batch_size, shuffle=True, num_workers = 1)
-    val_mura_dataset = Part_Emory_Allclass_Dataset(val_data_lists, "val")
+    val_mura_dataset = MURA_Allclass_Dataset(val_data_lists, "val")
     val_mura_dataloader = DataLoader(val_mura_dataset, batch_size = batch_size, shuffle=False, num_workers = 1)
 
     dataloaders={"train":train_mura_dataloader, "val":val_mura_dataloader}
@@ -207,11 +199,10 @@ def main():
     model.train()
     criterion = nn.CrossEntropyLoss()
 
-
     model, hist = train_model(model, dataloaders, criterion, optimizer, num_epochs)
 
     torch.save({'model_state_dict': model.state_dict(),
                 'optimizer_state_dict': optimizer.state_dict(),
-               },"./weights/Resnet_152_emory.pth.tar")
+               },"./weights/Resnet_152_internal.pth.tar")
     
-     eval(criterion)
+    eval(criterion)
